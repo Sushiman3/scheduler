@@ -8,9 +8,10 @@
     "dev": "vite",
     "dev:electron": "concurrently -k \"npm run dev\" \"wait-on tcp:5173 && electron .\"",
     "build": "tsc && vite build",
-    "build:electron": "npm run build && tsc -p electron/tsconfig.json && electron-builder --win --x64",
+    "build:electron": "npm run build && tsc -p electron/tsconfig.json && node -e \"require('fs').writeFileSync('dist-electron/package.json', '{\\\"type\\\": \\\"commonjs\\\"}')\" && electron-builder --win --x64",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "vite build && touch dist/.nojekyll && git add dist -f && git commit -m 'Deploy to GitHub Pages' && git subtree push --prefix dist origin gh-pages"
   },
   "dependencies": {
     "clsx": "^2.1.0",
