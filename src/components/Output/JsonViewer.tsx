@@ -12,7 +12,13 @@ export const JsonViewer = ({ data }: JsonViewerProps) => {
                 <span className="text-xs text-gray-500">{Object.keys(data).length} entries</span>
             </div>
             <div className="max-h-64 overflow-y-auto">
-                <pre>{JSON.stringify(data, null, 2)}</pre>
+                <pre>{JSON.stringify(
+                    Object.fromEntries(
+                        Object.entries(data).filter(([_, status]) => status !== 'unset')
+                    ),
+                    null,
+                    2
+                )}</pre>
             </div>
         </div>
     );

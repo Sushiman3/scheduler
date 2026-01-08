@@ -23,6 +23,8 @@ export const ControlPanel = ({
                 applyStatusToSelection('ok');
             } else if (e.key === 'r' || e.key === 'R') {
                 applyStatusToSelection('ng');
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                applyStatusToSelection('unset');
             } else if (e.key === 'Escape') {
                 clearSelection();
             }
@@ -59,6 +61,17 @@ export const ControlPanel = ({
                     <X size={18} />
                     Set Impossible
                 </button>
+
+                <button
+                    onClick={() => applyStatusToSelection('unset')}
+                    disabled={!hasSelection}
+                    className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                    title="Shortcut: Delete / Backspace"
+                >
+                    {/* Reuse X icon or maybe a Eraser/Trash if available, but for now just text or simple X is fine. Spec implies unsetting. */}
+                    <span className="text-lg leading-none pb-1">⊘</span>
+                    Unset Selection
+                </button>
             </div>
 
             <div className="h-px bg-gray-100 my-2" />
@@ -86,6 +99,7 @@ export const ControlPanel = ({
                 <div className="grid grid-cols-2 gap-1 mt-1 font-mono">
                     <span>G</span> <span>Set OK</span>
                     <span>R</span> <span>Set NG</span>
+                    <span>Del</span> <span>Unset</span>
                     <span>Esc</span> <span>Clear Select</span>
                 </div>
             </div>
