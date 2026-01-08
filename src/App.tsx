@@ -5,7 +5,7 @@ import { ProfilePicker } from './components/Profile/ProfilePicker';
 import { ProfileIndicator } from './components/Profile/ProfileIndicator';
 import { SyncIndicator } from './components/Profile/SyncIndicator';
 import { useCalendar } from './hooks/useCalendar';
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { CalendarState } from './types';
 
 function App() {
@@ -24,11 +24,9 @@ function App() {
         updateSchedule,
     } = useProfiles();
 
-    // Track if we're waiting for profile data to load
-    const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
-    // Get schedule data for current profile
-    const profileSchedule = currentProfileId ? schedules[currentProfileId] : undefined;
+    // Get schedule data for current profile (empty object for new profiles)
+    const profileSchedule = currentProfileId ? (schedules[currentProfileId] || {}) : {};
 
     // Debug: Log when schedules change
     useEffect(() => {
@@ -37,19 +35,9 @@ function App() {
         console.log('Profile schedule:', profileSchedule);
     }, [schedules, currentProfileId, profileSchedule]);
 
-    // When profile is selected, show loading briefly then show calendar
-    useEffect(() => {
-        if (currentProfileId && profileSchedule === undefined) {
-            setIsLoadingProfile(true);
-        } else {
-            setIsLoadingProfile(false);
-        }
-    }, [currentProfileId, profileSchedule]);
-
     const initialStatuses = useMemo((): CalendarState => {
-        const result = profileSchedule || {};
-        console.log('Initial statuses computed:', result);
-        return result;
+        console.log('Initial statuses computed:', profileSchedule);
+        return profileSchedule;
     }, [profileSchedule]);
 
     const handleStatusChange = useCallback((newStatuses: CalendarState) => {
@@ -108,14 +96,6 @@ function App() {
         );
     }
 
-    // Loading profile data
-    if (isLoadingProfile) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex items-center justify-center">
-                <div className="text-white text-xl font-medium animate-pulse">Loading {currentProfile.name}'s schedule...</div>
-            </div>
-        );
-    }
 
     // Main calendar view
     return (
