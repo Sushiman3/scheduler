@@ -59,15 +59,19 @@ export const useProfiles = () => {
             if (profilesRes.error) {
                 setError(profilesRes.error);
                 setSyncStatus('error');
+                console.log('[useProfiles] Error loading profiles:', profilesRes.error);
             } else if (profilesRes.data) {
                 setProfiles(profilesRes.data.profiles);
+                console.log('[useProfiles] Loaded profiles:', profilesRes.data.profiles.length);
             }
 
             if (schedulesRes.error) {
                 setError(schedulesRes.error);
                 setSyncStatus('error');
+                console.log('[useProfiles] Error loading schedules:', schedulesRes.error);
             } else if (schedulesRes.data) {
                 setSchedules(schedulesRes.data.schedules);
+                console.log('[useProfiles] Loaded schedules:', Object.keys(schedulesRes.data.schedules));
             }
 
             if (!profilesRes.error && !schedulesRes.error) {
@@ -141,6 +145,7 @@ export const useProfiles = () => {
     }, [profiles, schedules, currentProfileId]);
 
     const selectProfile = useCallback((profileId: string) => {
+        console.log('[useProfiles] Profile selected:', profileId);
         setCurrentProfileId(profileId);
     }, []);
 
@@ -156,14 +161,17 @@ export const useProfiles = () => {
     useEffect(() => {
         debouncedUpdateRef.current = createDebouncedFunction(
             async (profileId: string, newSchedule: CalendarState) => {
+                console.log('[useProfiles] Saving schedule for:', profileId, 'entries:', Object.keys(newSchedule).length);
                 setSyncStatus('syncing');
                 const result = await googleSheetsApi.updateSchedule(profileId, newSchedule);
 
                 if (result.error) {
                     setError(result.error);
                     setSyncStatus('error');
+                    console.log('[useProfiles] Save error:', result.error);
                 } else {
                     setSyncStatus('idle');
+                    console.log('[useProfiles] Schedule saved successfully');
                 }
             },
             WRITE_DEBOUNCE_MS

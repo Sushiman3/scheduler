@@ -5,7 +5,7 @@ import { ProfilePicker } from './components/Profile/ProfilePicker';
 import { ProfileIndicator } from './components/Profile/ProfileIndicator';
 import { SyncIndicator } from './components/Profile/SyncIndicator';
 import { useCalendar } from './hooks/useCalendar';
-import { useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo } from 'react';
 import { CalendarState } from './types';
 
 function App() {
@@ -24,34 +24,24 @@ function App() {
         updateSchedule,
     } = useProfiles();
 
-
-    // Get schedule data for current profile (empty object for new profiles)
-    const profileSchedule = currentProfileId ? (schedules[currentProfileId] || {}) : {};
-
-    // Debug: Log when schedules change
-    useEffect(() => {
-        console.log('Schedules updated:', schedules);
-        console.log('Current profile ID:', currentProfileId);
-        console.log('Profile schedule:', profileSchedule);
-    }, [schedules, currentProfileId, profileSchedule]);
+    // Get schedule data for current profile - use useMemo to prevent new object reference on every render
+    const profileSchedule = useMemo(() => {
+        return currentProfileId ? (schedules[currentProfileId] || {}) : {};
+    }, [currentProfileId, schedules]);
 
     const initialStatuses = useMemo((): CalendarState => {
-        console.log('Initial statuses computed:', profileSchedule);
         return profileSchedule;
     }, [profileSchedule]);
 
     const handleStatusChange = useCallback((newStatuses: CalendarState) => {
         if (currentProfileId) {
-            console.log('Status change:', newStatuses);
             updateSchedule(currentProfileId, newStatuses);
         }
     }, [currentProfileId, updateSchedule]);
 
     // Key for calendar based on profile and data
     const calendarKey = useMemo(() => {
-        const key = `${currentProfileId || 'none'}-${JSON.stringify(initialStatuses)}`;
-        console.log('Calendar key:', key.substring(0, 100));
-        return key;
+        return `${currentProfileId || 'none'}-${JSON.stringify(initialStatuses)}`;
     }, [currentProfileId, initialStatuses]);
 
     const calendarProps = useCalendar({
