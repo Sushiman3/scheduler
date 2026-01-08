@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     startOfMonth,
     endOfMonth,
@@ -14,11 +14,32 @@ import {
 } from 'date-fns';
 import { CalendarState, DateStatus } from '../types';
 
-export const useCalendar = () => {
+interface UseCalendarOptions {
+    initialStatuses?: CalendarState;
+    onStatusChange?: (statuses: CalendarState) => void;
+}
+
+export const useCalendar = (options: UseCalendarOptions = {}) => {
+    const { initialStatuses = {}, onStatusChange } = options;
+
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [statuses, setStatuses] = useState<CalendarState>({});
+    const [statuses, setStatuses] = useState<CalendarState>(initialStatuses);
     const [selection, setSelection] = useState<{ start: Date; end: Date } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+
+    // Sync statuses when initialStatuses changes (profile switch)
+    useEffect(() => {
+        setStatuses(initialStatuses);
+    }, [initialStatuses]);
+
+    // Notify parent when statuses change
+    const updateStatuses = useCallback((updater: (prev: CalendarState) => CalendarState) => {
+        setStatuses(prev => {
+            const next = updater(prev);
+            onStatusChange?.(next);
+            return next;
+        });
+    }, [onStatusChange]);
 
     // Helper to formatted date string key
     const getDateKey = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -35,17 +56,14 @@ export const useCalendar = () => {
 
     // Methods
     const handleMouseDown = (date: Date) => {
-        // Only allow selecting in current month, but spec says "Date range... min/max".
-        // "Range within same month only effective".
         if (!isSameMonth(date, currentMonth)) return;
-
         setIsDragging(true);
         setSelection({ start: date, end: date });
     };
 
     const handleMouseEnter = (date: Date) => {
         if (!isDragging || !selection) return;
-        if (!isSameMonth(date, currentMonth)) return; // Constrain to month
+        if (!isSameMonth(date, currentMonth)) return;
         setSelection((prev) => prev ? { ...prev, end: date } : null);
     };
 
@@ -68,7 +86,7 @@ export const useCalendar = () => {
         const end = max([selection.start, selection.end]);
         const daysToUpdate = eachDayOfInterval({ start, end });
 
-        setStatuses((prev) => {
+        updateStatuses((prev) => {
             const next = { ...prev };
             daysToUpdate.forEach((day) => {
                 if (isSameMonth(day, currentMonth)) {
@@ -77,15 +95,10 @@ export const useCalendar = () => {
             });
             return next;
         });
-        // Spec doesn't strictly say clear selection after apply, but usually "Editor experience" might keep it?
-        // "Select range -> Force batch change".
-        // I'll keep selection to allow toggling intent, or clear it.
-        // Spec 13: "Editor experience".
-        // I'll keep it. User can press Esc to clear.
     };
 
     const updateUnsetAll = (status: DateStatus) => {
-        setStatuses((prev) => {
+        updateStatuses((prev) => {
             const next = { ...prev };
             monthDays.forEach((day) => {
                 const key = getDateKey(day);
@@ -98,7 +111,7 @@ export const useCalendar = () => {
     };
 
     const clearDate = (date: Date) => {
-        setStatuses((prev) => {
+        updateStatuses((prev) => {
             const next = { ...prev };
             next[getDateKey(date)] = 'unset';
             return next;
