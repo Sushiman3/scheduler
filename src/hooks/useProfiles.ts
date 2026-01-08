@@ -189,6 +189,7 @@ export const useProfiles = () => {
         profiles,
         currentProfile,
         currentProfileId,
+        schedules,
         isLoading,
         syncStatus,
         error,

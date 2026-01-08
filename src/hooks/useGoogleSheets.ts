@@ -50,7 +50,38 @@ export const googleSheetsApi = {
     },
 
     async getSchedules(): Promise<ApiResponse<{ schedules: Record<string, CalendarState> }>> {
-        return fetchApi('getSchedules');
+        const result = await fetchApi<{ schedules: Record<string, CalendarState> }>('getSchedules');
+
+        // Normalize date keys to YYYY-MM-DD format
+        if (result.data?.schedules) {
+            const normalizedSchedules: Record<string, CalendarState> = {};
+
+            for (const [profileId, schedule] of Object.entries(result.data.schedules)) {
+                const normalizedSchedule: CalendarState = {};
+
+                for (const [dateKey, status] of Object.entries(schedule)) {
+                    // Convert any date format to YYYY-MM-DD
+                    let normalizedKey = dateKey;
+                    if (!dateKey.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        try {
+                            const date = new Date(dateKey);
+                            if (!isNaN(date.getTime())) {
+                                normalizedKey = date.toISOString().split('T')[0];
+                            }
+                        } catch {
+                            // Keep original key if parsing fails
+                        }
+                    }
+                    normalizedSchedule[normalizedKey] = status;
+                }
+
+                normalizedSchedules[profileId] = normalizedSchedule;
+            }
+
+            return { data: { schedules: normalizedSchedules } };
+        }
+
+        return result;
     },
 
     async addProfile(profile: UserProfile): Promise<ApiResponse<{ success: boolean; profile: UserProfile }>> {
@@ -61,7 +92,16 @@ export const googleSheetsApi = {
         profileId: string,
         scheduleData: CalendarState
     ): Promise<ApiResponse<{ success: boolean }>> {
-        return fetchApi('updateSchedule', 'POST', { profileId, scheduleData });
+        // Normalize all date keys to YYYY-MM-DD format to prevent format corruption
+        const normalizedSchedule: CalendarState = {};
+        for (const [key, value] of Object.entries(scheduleData)) {
+            // Ensure key is in YYYY-MM-DD format
+            const normalizedKey = key.match(/^\d{4}-\d{2}-\d{2}$/)
+                ? key
+                : new Date(key).toISOString().split('T')[0];
+            normalizedSchedule[normalizedKey] = value;
+        }
+        return fetchApi('updateSchedule', 'POST', { profileId, scheduleData: normalizedSchedule });
     },
 
     async deleteProfile(profileId: string): Promise<ApiResponse<{ success: boolean }>> {

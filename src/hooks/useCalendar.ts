@@ -15,6 +15,7 @@ import {
 import { CalendarState, DateStatus } from '../types';
 
 interface UseCalendarOptions {
+    key?: string;
     initialStatuses?: CalendarState;
     onStatusChange?: (statuses: CalendarState) => void;
 }
