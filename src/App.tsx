@@ -1,17 +1,19 @@
-import { useCalendar } from './hooks/useCalendar';
 import { useProfiles } from './hooks/useProfiles';
 import { Calendar } from './components/Calendar/Calendar';
 import { ControlPanel } from './components/Controls/ControlPanel';
 import { ProfilePicker } from './components/Profile/ProfilePicker';
 import { ProfileIndicator } from './components/Profile/ProfileIndicator';
 import { SyncIndicator } from './components/Profile/SyncIndicator';
-import { useCallback, useMemo } from 'react';
+import { useCalendar } from './hooks/useCalendar';
+import { useCallback, useMemo, useState, useEffect } from 'react';
+import { CalendarState } from './types';
 
 function App() {
     const {
         profiles,
         currentProfile,
         currentProfileId,
+        schedules,
         isLoading,
         syncStatus,
         error,
@@ -19,19 +21,50 @@ function App() {
         addProfile,
         selectProfile,
         deselectProfile,
-        getSchedule,
         updateSchedule,
     } = useProfiles();
 
-    const initialStatuses = useMemo(() => {
-        return currentProfileId ? getSchedule(currentProfileId) : {};
-    }, [currentProfileId, getSchedule]);
+    // Track if we're waiting for profile data to load
+    const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
-    const handleStatusChange = useCallback((newStatuses: Parameters<typeof updateSchedule>[1]) => {
+    // Get schedule data for current profile
+    const profileSchedule = currentProfileId ? schedules[currentProfileId] : undefined;
+
+    // Debug: Log when schedules change
+    useEffect(() => {
+        console.log('Schedules updated:', schedules);
+        console.log('Current profile ID:', currentProfileId);
+        console.log('Profile schedule:', profileSchedule);
+    }, [schedules, currentProfileId, profileSchedule]);
+
+    // When profile is selected, show loading briefly then show calendar
+    useEffect(() => {
+        if (currentProfileId && profileSchedule === undefined) {
+            setIsLoadingProfile(true);
+        } else {
+            setIsLoadingProfile(false);
+        }
+    }, [currentProfileId, profileSchedule]);
+
+    const initialStatuses = useMemo((): CalendarState => {
+        const result = profileSchedule || {};
+        console.log('Initial statuses computed:', result);
+        return result;
+    }, [profileSchedule]);
+
+    const handleStatusChange = useCallback((newStatuses: CalendarState) => {
         if (currentProfileId) {
+            console.log('Status change:', newStatuses);
             updateSchedule(currentProfileId, newStatuses);
         }
     }, [currentProfileId, updateSchedule]);
+
+    // Key for calendar based on profile and data
+    const calendarKey = useMemo(() => {
+        const key = `${currentProfileId || 'none'}-${JSON.stringify(initialStatuses)}`;
+        console.log('Calendar key:', key.substring(0, 100));
+        return key;
+    }, [currentProfileId, initialStatuses]);
 
     const calendarProps = useCalendar({
         initialStatuses,
@@ -75,6 +108,15 @@ function App() {
         );
     }
 
+    // Loading profile data
+    if (isLoadingProfile) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex items-center justify-center">
+                <div className="text-white text-xl font-medium animate-pulse">Loading {currentProfile.name}'s schedule...</div>
+            </div>
+        );
+    }
+
     // Main calendar view
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8 flex flex-col items-center">
@@ -94,7 +136,7 @@ function App() {
                         <ProfileIndicator profile={currentProfile} onSwitch={deselectProfile} />
                     </header>
 
-                    <Calendar {...calendarProps} />
+                    <Calendar key={calendarKey} {...calendarProps} />
                 </div>
 
                 <div className="flex-none md:w-72 mt-16">
